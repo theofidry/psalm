@@ -1,6 +1,6 @@
 <?php
 namespace Psalm\Issue;
 
-class PossiblyInvalidMethodCall extends CodeIssue
+class PossiblyInvalidMethodCall extends MethodIssue
 {
 }
