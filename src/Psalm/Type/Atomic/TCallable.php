@@ -3,9 +3,22 @@ namespace Psalm\Type\Atomic;
 
 class TCallable extends \Psalm\Type\Atomic
 {
+    use CallableTrait;
+
     public function __toString()
     {
-        return 'callable';
+        $param_string = '';
+        $return_type_string = '';
+
+        if ($this->params !== null) {
+            $param_string = '(' . implode(', ', $this->params) . ')';
+        }
+
+        if ($this->return_type !== null) {
+            $return_type_string = ' : ' . $this->return_type;
+        }
+
+        return 'callable' . $param_string . $return_type_string;
     }
 
     /**
@@ -32,7 +45,7 @@ class TCallable extends \Psalm\Type\Atomic
         $php_major_version,
         $php_minor_version
     ) {
-        return null;
+        return 'callable';
     }
 
     public function canBeFullyExpressedInPhp()

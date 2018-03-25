@@ -105,7 +105,8 @@ class ParseTree
                         }
 
                         $current_leaf = $current_leaf->parent;
-                    } while (!$current_leaf instanceof ParseTree\EncapsulationTree);
+                    } while (!$current_leaf instanceof ParseTree\EncapsulationTree
+                        && !$current_leaf instanceof ParseTree\CallableTree);
 
                     break;
 
@@ -142,6 +143,7 @@ class ParseTree
 
                     if ($context_node instanceof ParseTree\GenericTree
                         || $context_node instanceof ParseTree\ObjectLikeTree
+                        || $context_node instanceof ParseTree\CallableTree
                     ) {
                         $context_node = $context_node->parent;
                     }
@@ -149,6 +151,7 @@ class ParseTree
                     while ($context_node
                         && !$context_node instanceof ParseTree\GenericTree
                         && !$context_node instanceof ParseTree\ObjectLikeTree
+                        && !$context_node instanceof ParseTree\CallableTree
                     ) {
                         $context_node = $context_node->parent;
                     }
@@ -164,8 +167,24 @@ class ParseTree
                 case ':':
                     $current_parent = $current_leaf->parent;
 
+                    if ($current_leaf instanceof ParseTree\CallableTree) {
+                        $new_parent_leaf = new ParseTree\CallableWithReturnTypeTree($current_parent);
+                        $current_leaf->parent = $new_parent_leaf;
+                        $new_parent_leaf->children = [$current_leaf];
+
+                        if ($current_parent) {
+                            array_pop($current_parent->children);
+                            $current_parent->children[] = $new_parent_leaf;
+                        } else {
+                            $parse_tree = $new_parent_leaf;
+                        }
+
+                        $current_leaf = $new_parent_leaf;
+                        break;
+                    }
+
                     if ($current_parent && $current_parent instanceof ParseTree\ObjectLikePropertyTree) {
-                        continue;
+                        break;
                     }
 
                     if (!$current_parent) {
@@ -261,7 +280,12 @@ class ParseTree
                             break;
 
                         case '(':
-                            throw new TypeParseTreeException('Cannot process bracket yet');
+                            $new_leaf = new ParseTree\CallableTree(
+                                $type_token,
+                                $new_parent
+                            );
+                            ++$i;
+                            break;
 
                         default:
                             if ($type_token === '$this') {

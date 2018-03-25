@@ -6,6 +6,7 @@ use Psalm\Type\Atomic;
 use Psalm\Type\Atomic\ObjectLike;
 use Psalm\Type\Atomic\TArray;
 use Psalm\Type\Atomic\TBool;
+use Psalm\Type\Atomic\TCallable;
 use Psalm\Type\Atomic\TClassString;
 use Psalm\Type\Atomic\TEmpty;
 use Psalm\Type\Atomic\TFalse;
@@ -60,9 +61,9 @@ abstract class Type
             $parsed_type = self::getTypeFromTree($parse_tree, $php_compatible);
         } catch (TypeParseTreeException $e) {
             throw $e;
-        } catch (\Exception $e) {
+        } /*catch (\Exception $e) {
             throw new TypeParseTreeException($e->getMessage());
-        }
+        }*/
 
         if (!($parsed_type instanceof Union)) {
             $parsed_type = new Union([$parsed_type]);
@@ -252,6 +253,26 @@ abstract class Type
             }
 
             return new ObjectLike($properties);
+        }
+
+        if ($parse_tree instanceof ParseTree\CallableWithReturnTypeTree) {
+            $params = array_map(
+                /**
+                 * @return Union
+                 */
+                function (ParseTree $child_tree) {
+                    $tree_type = self::getTypeFromTree($child_tree, false);
+
+                    return $tree_type instanceof Union ? $tree_type : new Union([$tree_type]);
+                },
+                $parse_tree->children[0]->children
+            );
+
+            $return_type = self::getTypeFromTree($parse_tree->children[1], false);
+
+            $return_type = $return_type instanceof Union ? $return_type : new Union([$return_type]);
+
+            return new TCallable('callable', $params, $return_type);
         }
 
         if ($parse_tree instanceof ParseTree\EncapsulationTree) {

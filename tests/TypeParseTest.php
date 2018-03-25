@@ -300,4 +300,26 @@ class TypeParseTest extends TestCase
             (string)Type::parseString('array{a:int, b?:int}')
         );
     }
+
+    /**
+     * @return void
+     */
+    public function testCallable()
+    {
+        $this->assertSame(
+            'callable(int, string) : void',
+            (string)Type::parseString('callable(int, string) : void')
+        );
+    }
+
+    /**
+     * @return void
+     */
+    public function testCallableWithUnionLastType()
+    {
+        $this->assertSame(
+            'callable(int, string) : void',
+            (string)Type::parseString('callable(int, (int|string)) : void')
+        );
+    }
 }

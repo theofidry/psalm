@@ -585,6 +585,10 @@ class FunctionCallTest extends TestCase
                 '<?php
                     $a = function() use ($argv) : void {};',
             ],
+            'implodeMultiDimensionalArray' => [
+                '<?php
+                    $urls = array_map("implode", [["a", "b"]]);',
+            ],
         ];
     }
 
