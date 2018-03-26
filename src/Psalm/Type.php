@@ -61,9 +61,9 @@ abstract class Type
             $parsed_type = self::getTypeFromTree($parse_tree, $php_compatible);
         } catch (TypeParseTreeException $e) {
             throw $e;
-        } /*catch (\Exception $e) {
+        } catch (\Exception $e) {
             throw new TypeParseTreeException($e->getMessage());
-        }*/
+        }
 
         if (!($parsed_type instanceof Union)) {
             $parsed_type = new Union([$parsed_type]);
@@ -256,6 +256,20 @@ abstract class Type
         }
 
         if ($parse_tree instanceof ParseTree\CallableWithReturnTypeTree) {
+            $callable_type = self::getTypeFromTree($parse_tree->children[0], false);
+
+            if (!$callable_type instanceof TCallable) {
+                throw new \InvalidArgumentException('Parsing callable tree node should return TCallable');
+            }
+
+            $return_type = self::getTypeFromTree($parse_tree->children[1], false);
+
+            $callable_type->return_type = $return_type instanceof Union ? $return_type : new Union([$return_type]);
+
+            return $callable_type;
+        }
+
+        if ($parse_tree instanceof ParseTree\CallableTree) {
             $params = array_map(
                 /**
                  * @return Union
@@ -265,14 +279,10 @@ abstract class Type
 
                     return $tree_type instanceof Union ? $tree_type : new Union([$tree_type]);
                 },
-                $parse_tree->children[0]->children
+                $parse_tree->children
             );
 
-            $return_type = self::getTypeFromTree($parse_tree->children[1], false);
-
-            $return_type = $return_type instanceof Union ? $return_type : new Union([$return_type]);
-
-            return new TCallable('callable', $params, $return_type);
+            return new TCallable('callable', $params);
         }
 
         if ($parse_tree instanceof ParseTree\EncapsulationTree) {

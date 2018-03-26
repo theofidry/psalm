@@ -318,8 +318,19 @@ class TypeParseTest extends TestCase
     public function testCallableWithUnionLastType()
     {
         $this->assertSame(
-            'callable(int, string) : void',
-            (string)Type::parseString('callable(int, (int|string)) : void')
+            'callable(int, int|string) : void',
+            (string)Type::parseString('callable(int, int|string) : void')
+        );
+    }
+
+    /**
+     * @return void
+     */
+    public function testCallableWithoutReturn()
+    {
+        $this->assertSame(
+            'callable(int, string)',
+            (string)Type::parseString('callable(int, string)')
         );
     }
 }

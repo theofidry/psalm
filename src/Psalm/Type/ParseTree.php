@@ -280,6 +280,12 @@ class ParseTree
                             break;
 
                         case '(':
+                            if (!in_array($type_token, ['closure', 'callable', '\closure'])) {
+                                throw new TypeParseTreeException(
+                                    'Bracket must be preceded by “Closure” or “callable”'
+                                );
+                            }
+
                             $new_leaf = new ParseTree\CallableTree(
                                 $type_token,
                                 $new_parent
