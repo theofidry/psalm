@@ -60,4 +60,14 @@ class FileStorage
      * @var string
      */
     public $hash = '';
+    
+    /**
+     * @var array|null
+     */
+    public $reference_map = null;
+
+    /**
+     * @var array|null
+     */
+    public $type_map = null;
 }

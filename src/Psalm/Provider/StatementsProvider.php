@@ -3,7 +3,6 @@ namespace Psalm\Provider;
 
 use PhpParser;
 use Psalm\Checker\ProjectChecker;
-use Psalm\LanguageServer\NodeVisitor\{ColumnCalculator, ReferencesAdder};
 
 class StatementsProvider
 {
@@ -46,17 +45,14 @@ class StatementsProvider
     /**
      * @param  string  $file_path
      * @param  bool    $debug_output
-     * @param  bool    $server_mode
      *
      * @return array<int, \PhpParser\Node\Stmt>
      */
-    public function getStatementsForFile($file_path, $debug_output = false, $server_mode = false)
+    public function getStatementsForFile($file_path, $debug_output = false)
     {
         $from_cache = false;
 
-        $version = 'parsercache' . ($server_mode ? 'server' : '') . $this->this_modified_time;
-        
-        error_log(($server_mode ? 'server ' : 'not server ') . $file_path);
+        $version = 'parsercache' . $this->this_modified_time;
 
         $file_contents = $this->file_provider->getContents($file_path);
         $modified_time = $this->file_provider->getModifiedTime($file_path);
@@ -75,7 +71,7 @@ class StatementsProvider
                 echo 'Parsing ' . $file_path . PHP_EOL;
             }
 
-            $stmts = self::parseStatementsInFile($file_contents, $server_mode);
+            $stmts = self::parseStatementsInFile($file_contents);
             $this->file_storage_cache_provider->removeCacheForFile($file_path);
         } else {
             $from_cache = true;
@@ -92,20 +88,15 @@ class StatementsProvider
 
     /**
      * @param  string  $file_contents
-     * @param  bool    $server_mode
      *
      * @return array<int, \PhpParser\Node\Stmt>
      */
-    private static function parseStatementsInFile($file_contents, $server_mode)
+    private static function parseStatementsInFile($file_contents)
     {
         if (!self::$parser) {
             $attributes = [
                 'comments', 'startLine', 'startFilePos', 'endFilePos',
             ];
-
-            if ($server_mode) {
-                $attributes[] = 'endLine';
-            }
 
             $lexer = version_compare(PHP_VERSION, '7.0.0dev', '>=')
                 ? new PhpParser\Lexer([ 'usedAttributes' => $attributes ])
@@ -123,15 +114,6 @@ class StatementsProvider
             foreach ($error_handler->getErrors() as $error) {
                 throw $error;
             }
-        }
-
-        if ($server_mode) {
-            $traverser = new PhpParser\NodeTraverser;
-
-            // Add column attributes to nodes
-            $traverser->addVisitor(new ColumnCalculator($file_contents));
-
-            $traverser->traverse($stmts);
         }
 
         return $stmts;

@@ -820,8 +820,7 @@ class ProjectChecker
 
         $stmts = $this->codebase->getStatementsForFile(
             $file_checker->getFilePath(),
-            false,
-            $this->codebase->server_mode
+            false
         );
 
         $file_checker->populateCheckers($stmts);
