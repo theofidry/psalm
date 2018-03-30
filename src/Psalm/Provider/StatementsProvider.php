@@ -99,7 +99,7 @@ class StatementsProvider
             ];
 
             $lexer = version_compare(PHP_VERSION, '7.0.0dev', '>=')
-                ? new PhpParser\Lexer([ 'usedAttributes' => $attributes ])
+                ? new PhpParser\Lexer\Emulative([ 'usedAttributes' => $attributes ])
                 : new PhpParser\Lexer\Emulative([ 'usedAttributes' => $attributes ]);
 
             self::$parser = (new PhpParser\ParserFactory())->create(PhpParser\ParserFactory::PREFER_PHP7, $lexer);
@@ -110,7 +110,7 @@ class StatementsProvider
         /** @var array<int, \PhpParser\Node\Stmt> */
         try {
             $stmts = self::$parser->parse($file_contents, $error_handler);
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             error_log($file_contents);
             throw $e;
         }

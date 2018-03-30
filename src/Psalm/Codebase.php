@@ -228,7 +228,7 @@ class Codebase
             $file_storage = $this->file_storage_provider->get($referenced_file_path);
 
             foreach ($file_storage->classlikes_in_file as $fq_classlike_name) {
-                $this->classlike_storage_provider->remove($fq_classlike_name);
+                $this->classlike_storage_provider->remove($fq_classlike_name, $referenced_file_path);
                 $this->classlikes->removeClassLike($fq_classlike_name);
             }
 
@@ -353,19 +353,16 @@ class Codebase
 
         $file_path_lc = strtolower($file_path);
 
-        if (!isset($this->reference_map[$file_path_lc])) {
-            $this->reference_map[$file_path_lc] = [];
+        if (isset($this->reference_map[$file_path_lc])) {
+            ksort($this->reference_map[$file_path_lc]);
         }
 
-        if (!isset($this->type_map[$file_path_lc])) {
-            $this->type_map[$file_path_lc] = [];
+        if (isset($this->type_map[$file_path_lc])) {
+            ksort($this->type_map[$file_path_lc]);
         }
 
-        ksort($this->reference_map[$file_path_lc]);
-        ksort($this->type_map[$file_path_lc]);
-
-        $cached_value->reference_map = $this->reference_map[$file_path_lc];
-        $cached_value->type_map = $this->type_map[$file_path_lc];
+        $cached_value->reference_map = $this->reference_map[$file_path_lc] ?? [];
+        $cached_value->type_map = $this->type_map[$file_path_lc] ?? [];
 
         $this->file_storage_provider->cache->writeToCache(
             $cached_value,
@@ -818,6 +815,7 @@ class Codebase
 
     public function getSymbolInformation(string $file_path, string $symbol) : ?string
     {
+        error_log('getting info for ' . $symbol);
         try {
             if (strpos($symbol, '::')) {
                 list($fq_class_name, $symbol_name) = explode('::', $symbol);
@@ -851,7 +849,7 @@ class Codebase
             $storage = $this->classlike_storage_provider->get($symbol);
 
             return ($storage->abstract ? 'abstract ' : '') . 'class ' . $storage->name;
-        } catch (\UnexpectedValueException $e) {
+        } catch (\Exception $e) {
             error_log($e->getMessage());
             return null;
         }
@@ -905,10 +903,13 @@ class Codebase
         $this->invalidateInformationForFile($file_path);
         $this->scanner->addFilesToDeepScan([$file_path]);
         $this->scanner->scanFiles($this->classlikes);
+        $this->populator->populateCodebase();
     }
     
     private function invalidateInformationForFile(string $file_path)
     {
+        $this->scanner->removeFile($file_path);
+
         try {
             $file_storage = $this->file_storage_provider->get($file_path);
         } catch (\InvalidArgumentException $e) {
@@ -921,9 +922,6 @@ class Codebase
         }
 
         $this->file_storage_provider->remove($file_path);
-        $this->scanner->removeFile($file_path);
-
-        unset($this->type_map[strtolower($file_path)], $this->reference_map[strtolower($file_path)]);
     }
 
     public function removeTemporaryFileChanges(string $file_path)
@@ -932,5 +930,6 @@ class Codebase
         $this->invalidateInformationForFile($file_path);
         $this->scanner->addFilesToDeepScan([$file_path]);
         $this->scanner->scanFiles($this->classlikes);
+        $this->populator->populateCodebase();
     }
 }
